@@ -25,6 +25,15 @@ sudo -H pip install -r requirements.txt
 
 sudo python3 -m venv /opt/srt-test-tool/venv
 
+
+# Update your system
+
+
+
+
+
+
+
 # Activate it
 source /opt/srt-test-tool/venv/bin/activate
 # Fix permissions on the virtual environment
