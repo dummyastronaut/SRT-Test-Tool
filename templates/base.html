@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SRT Monitor Tool{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --srt-primary: #0066CC;
+            --srt-secondary: #00AA66;
+            --srt-accent: #FF6600;
+        }
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-srt {
+            background: linear-gradient(90deg, var(--srt-primary), #004499);
+            box-shadow: 0 4px 20px rgba(0,102,204,0.3);
+        }
+        .card-srt {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            border: none;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+            transition: transform 0.3s ease;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card.success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .stat-card.warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .stat-card.info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .btn-srt {
+            background: linear-gradient(90deg, var(--srt-primary), #004499);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 25px;
+            font-weight: 600;
+            color: white;
+        }
+        .btn-srt:hover {
+            background: linear-gradient(90deg, #004499, var(--srt-primary));
+            transform: translateY(-2px);
+            color: white;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-online { background: #38ef7d; animation: pulse 2s infinite; }
+        .status-offline { background: #f5576c; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(56,239,125,0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(56,239,125,0); }
+            100% { box-shadow: 0 0 0 0 rgba(56,239,125,0); }
+        }
+        .nav-link-srt {
+            color: rgba(255,255,255,0.85);
+            border-radius: 8px;
+            margin: 5px 0;
+            transition: all 0.3s ease;
+        }
+        .nav-link-srt:hover, .nav-link-srt.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+        .footer-srt {
+            background: rgba(0,0,0,0.3);
+            color: rgba(255,255,255,0.7);
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--srt-primary);
+            box-shadow: 0 0 0 0.2rem rgba(0,102,204,0.25);
+        }
+        .input-group-text {
+            background: var(--srt-primary);
+            color: white;
+            border: none;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-srt sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-radioactive me-2"></i>SRT Monitor Tool
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link nav-link-srt {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link nav-link-srt {% if request.endpoint == 'srt_config' %}active{% endif %}" href="{{ url_for('srt_config') }}"><i class="bi bi-gear me-1"></i>SRT Config</a></li>
+                    <li class="nav-item"><a class="nav-link nav-link-srt {% if request.endpoint == 'iperf_config' %}active{% endif %}" href="{{ url_for('iperf_config') }}"><i class="bi bi-trophy me-1"></i>Iperf Test</a></li>
+                    <li class="nav-item"><a class="nav-link nav-link-srt {% if request.endpoint == 'stats' %}active{% endif %}" href="{{ url_for('stats') }}"><i class="bi bi-graph-up me-1"></i>Statistics</a></li>
+                    <li class="nav-item"><a class="nav-link nav-link-srt {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}"><i class="bi bi-file-earmark-bar-graph me-1"></i>Reports</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link nav-link-srt dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-tools me-1"></i>Tools</a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('udp_generator') }}"><i class="bi bi-upload me-2"></i>UDP Generator</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('udp_receiver') }}"><i class="bi bi-download me-2"></i>UDP Receiver</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('preset_manager') }}"><i class="bi bi-collection me-2"></i>Presets</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="d-flex ms-3 align-items-center">
+                    <span class="status-indicator status-online me-2" title="System Online"></span>
+                    <span class="text-white small">System Active</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container-fluid py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer-srt py-3 mt-4">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start">
+                    <span class="small">SRT Monitor Tool v1.0 | Based on Haivision SRT Protocol</span>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <span class="small"><i class="bi bi-github me-1"></i><a href="https://github.com/Haivision/srt" class="text-white text-decoration-none" target="_blank">SRT Project</a></span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.7.2/client/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        socket.on('stats_update', (data) => window.dispatchEvent(new CustomEvent('srt_stats_update', { detail: data })));
+        socket.on('iperf_update', (data) => window.dispatchEvent(new CustomEvent('iperf_update', { detail: data })));
+    </script>
+    {% block extra_js %}{% endblock %}
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
