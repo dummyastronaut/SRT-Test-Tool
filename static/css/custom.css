@@ -1,0 +1,5 @@
+/* Custom SRT Monitor Styles */
+.stat-card { cursor: default; }
+.card-srt { transition: box-shadow 0.3s ease; }
+.card-srt:hover { box-shadow: 0 15px 50px rgba(0,0,0,0.3); }
+.nav-link-srt { font-weight: 500; }
