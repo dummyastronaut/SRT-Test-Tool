@@ -1,0 +1,29 @@
+# Core
+Flask==2.3.3
+Flask-SocketIO==5.3.4
+python-socketio==5.7.2
+eventlet==0.33.3
+
+# Data processing
+pandas==2.0.3
+numpy==1.24.3
+python-dateutil==2.8.2
+
+# Visualization
+matplotlib==3.7.2
+plotly==5.14.1
+kaleido==0.2.1
+
+# SRT integration
+python-srt==1.5.1
+
+# Iperf integration
+iperf3==0.1.10
+
+# PDF generation
+reportlab==3.6.8
+weasyprint==59.0
+
+# Utilities
+psutil==5.9.5
+pyyaml==6.0
