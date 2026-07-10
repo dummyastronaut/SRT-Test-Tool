@@ -17,6 +17,40 @@ chmod +x deploy/installer.sh
 # Run the installer
 sudo ./deploy/installer.sh
 
+# Instead of:
+sudo pip install -r requirements.txt
+
+# Use:
+sudo -H pip install -r requirements.txt
+
+sudo python3 -m venv /opt/srt-test-tool/venv
+
+# Activate it
+source /opt/srt-test-tool/venv/bin/activate
+# Fix permissions on the virtual environment
+sudo chown -R $(whoami):$(whoami) /opt/srt-test-tool/venv
+
+# Now you can upgrade pip without sudo
+/opt/srt-test-tool/venv/bin/pip install --upgrade pip
+
+# Verify pip works
+/opt/srt-test-tool/venv/bin/pip --version
+sudo cp home/set/SRT-Test-Tool/requirements.txt /opt/srt-test-tool/
+pip install -r /opt/srt-test-tool/requirements.txt
+
+# Install required build tools and libraries
+echo "Installing system dependencies for pandas..."
+sudo apt update
+sudo apt install -y build-essential python3-dev python3-pip python3-venv \
+    libopenblas-dev liblapack-dev gfortran libgomp1 \
+    zlib1g-dev libbz2-dev liblzma-dev libffi-dev \
+    libssl-dev libncurses5-dev libsqlite3-dev tk-dev \
+    libgdbm-dev libreadline-dev libdb5.3-dev
+
+# Install numpy and pandas system packages (reduces compilation needs)
+sudo apt install -y python3-numpy python3-pandas
+
+
 Manual install
 # Create system user
 sudo useradd -r -s /bin/false srt-monitor
@@ -41,6 +75,74 @@ source /opt/srt-test-tool/venv/bin/activate
 pip install --upgrade pip
 pip install -r /opt/srt-test-tool/requirements.txt
 deactivate
+
+sudo cp -r /home/set/SRT-Test-Tool/ /opt/
+# Activate the virtual environment
+source /opt/srt-test-tool/venv/bin/activate
+
+#!/bin/bash
+
+# Activate virtual environment
+source /opt/srt-test-tool/venv/bin/activate
+
+# Upgrade pip and setuptools
+pip install --upgrade pip setuptools wheel
+
+# Install all required packages
+echo "Installing SRT and dependencies..."
+pip install pysrt python-srtlib srt-tools srtpy python-srt
+
+echo "Installing other required packages..."
+pip install flask flask-socketio python-socketio eventlet \
+    matplotlib plotly kaleido iperf3 reportlab weasyprint \
+    gunicorn redis pandas numpy requests pyyaml psutil
+
+# Verify key packages
+python -c "import flask; import pysrt; import matplotlib; print('✅ All key packages imported successfully')"
+
+echo "Installation complete!"
+
+# Create missing directories
+sudo mkdir -p /opt/srt-test-tool/app/templates
+sudo mkdir -p /opt/srt-test-tool/app/static
+sudo mkdir -p /opt/srt-test-tool/app/logs
+
+# Fix permissions
+sudo chown -R srt-monitor:srt-monitor /opt/srt-test-tool/app
+sudo chmod -R 755 /opt/srt-test-tool/app
+# Activate virtual environment
+source /opt/srt-test-tool/venv/bin/activate
+
+# List installed packages
+pip list | grep -E 'flask|srt|pysrt|matplotlib|plotly|gunicorn'
+
+# Check if all required packages are installed
+python -c "
+import flask
+import pysrt
+import matplotlib
+import plotly
+import gunicorn
+print('✅ All required packages are installed')
+"
+pip install --upgrade pip
+pip install flask pysrt python-srtlib srt-tools srtpy matplotlib plotly gunicorn redis pandas numpy
+
+
+sudo apt install curl
+
+source /opt/srt-test-tool/venv/bin/activate
+
+# Try these packages instead:
+pip install srtlib
+pip install python-srt
+pip install srt-tools
+pip install srtpy
+
+# Test import
+python -c "import srtlib; print('✅ srtlib imported')"
+python -c "import srt; print('✅ srt imported')"
+
 
 # Create systemd service
 sudo bash -c 'cat > /etc/systemd/system/srt-test-tool.service << "EOF"
@@ -128,7 +230,15 @@ du -sh /var/log/srt-test-tool/
 # Clean old reports (keep last 30 days)
 find /opt/srt-test-tool/data/reports/ -name "*.pdf" -mtime +30 -delete
 
+✅ Service stays running (no restarts)
+✅ Flask app responds on port 5000
+✅ Logs show normal startup
+✅ No crash messages
 
+📊 Verify with:
+   curl http://localhost:5000
+   sudo systemctl status srt-test-tool.service
+   sudo journalctl -u srt-test-tool.service -n 20
 
 
 
