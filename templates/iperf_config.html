@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Iperf Test Configuration{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <form method="POST" action="{{ url_for('iperf_config') }}" id="iperfForm">
+            <!-- Mode Selection -->
+            <div class="card-srt p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-trophy me-2"></i>Iperf Mode Configuration</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Test Mode</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="iperf_mode" id="iperfClient" value="client">
+                            <label class="btn btn-outline-primary" for="iperfClient"><i class="bi bi-arrow-up me-1"></i>Client</label>
+                            <input type="radio" class="btn-check" name="iperf_mode" id="iperfServer" value="server" checked>
+                            <label class="btn btn-outline-primary" for="iperfServer"><i class="bi bi-arrow-down me-1"></i>Server</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Protocol</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="protocol" id="protoTCP" value="tcp" checked>
+                            <label class="btn btn-outline-info" for="protoTCP">TCP</label>
+                            <input type="radio" class="btn-check" name="protocol" id="protoUDP" value="udp">
+                            <label class="btn btn-outline-info" for="protoUDP">UDP</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Settings -->
+            <div class="card-srt p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-network-wired me-2"></i>Network Settings</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Server IP / Host</label>
+                        <input type="text" class="form-control" name="server_ip" id="serverIp" value="127.0.0.1" placeholder="192.168.1.100">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Port Number</label>
+                        <input type="number" class="form-control" name="port" value="5201" min="1024" max="65535">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Parallel Sessions</label>
+                        <input type="number" class="form-control" name="parallel" value="1" min="1" max="16">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bandwidth & Performance -->
+            <div class="card-srt p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-gauge-high me-2"></i>Bandwidth & Performance</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Bandwidth (bits/sec)</label>
+                        <input type="number" class="form-control" name="bandwidth" value="100000000" min="1000" step="1000000">
+                        <small class="text-muted">e.g., 100000000 = 100 Mbps</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Buffer Size (bytes)</label>
+                        <input type="number" class="form-control" name="buffer_size" value="8192" min="1024">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Window Size (-w)</label>
+                        <input type="text" class="form-control" name="window_size" value="256K" placeholder="256K, 1M">
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <label class="form-label">Test Duration (seconds)</label>
+                        <input type="number" class="form-control" name="duration" value="60" min="10" max="3600">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Interval (seconds)</label>
+                        <input type="number" class="form-control" name="interval" value="1" min="0.5" max="60">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Options -->
+            <div class="card-srt p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-sliders me-2"></i>Advanced Options</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Test Length (bytes)</label>
+                        <input type="number" class="form-control" name="test_length" placeholder="Leave empty for unlimited">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Number of Test Bytes (-n)</label>
+                        <input type="text" class="form-control" name="num_bytes" placeholder="e.g., 100M, 1G">
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-12">
+                        <label class="form-label">Additional Iperf Arguments</label>
+                        <input type="text" class="form-control" name="extra_args" placeholder="--extra options, e.g., --ipv4_only --no_fork">
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="reverse" id="reverseMode">
+                            <label class="form-check-label" for="reverseMode">Reverse Mode (download test)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="bidirectional" id="bidirectional">
+                            <label class="form-check-label" for="bidirectional">Bidirectional Test</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="zerocopy" id="zerocopy">
+                            <label class="form-check-label" for="zerocopy">Zero Copy Mode</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex">
+                <button type="submit" class="btn btn-srt btn-lg" name="action" value="start"><i class="bi bi-play-circle me-2"></i>Start Test</button>
+                <button type="submit" class="btn btn-outline-danger btn-lg" name="action" value="stop"><i class="bi bi-stop-circle me-2"></i>Stop Test</button>
+                <button type="button" class="btn btn-outline-secondary btn-lg" onclick="resetIperfForm()"><i class="bi bi-arrow-counterclockwise me-2"></i>Reset</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Live Output & Results -->
+    <div class="col-lg-4">
+        <div class="card-srt p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-terminal me-2"></i>Live Output</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" id="btnPauseOutput"><i class="bi bi-pause"></i></button>
+                    <button class="btn btn-sm btn-outline-secondary" id="btnClearOutput"><i class="bi bi-trash"></i></button>
+                </div>
+            </div>
+            <div class="bg-dark p-3 rounded" id="iperfOutput" style="max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px;">
+                <div class="text-muted">[System] Ready for iperf test...</div>
+            </div>
+        </div>
+        <div class="card-srt p-4">
+            <h5 class="mb-3"><i class="bi bi-download me-2"></i>Export Results</h5>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('export_iperf_json') }}" class="btn btn-outline-primary"><i class="bi bi-braces me-2"></i>Export JSON</a>
+                <a href="{{ url_for('export_iperf_csv') }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Export CSV</a>
+                <a href="{{ url_for('export_iperf_pdf') }}" class="btn btn-outline-danger"><i class="bi bi-file-earmark-pdf me-2"></i>Export PDF</a>
+                <a href="{{ url_for('export_iperf_html') }}" class="btn btn-outline-info"><i class="bi bi-file-earmark-code me-2"></i>Export HTML Report</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let outputPaused = false;
+function addIperfOutput(text, type = '') {
+    if (outputPaused) return;
+    const out = document.getElementById('iperfOutput');
+    const div = document.createElement('div');
+    div.className = type ? 'text-' + type : 'text-light';
+    div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + text;
+    out.appendChild(div);
+    out.scrollTop = out.scrollHeight;
+}
+function resetIperfForm() { document.getElementById('iperfForm').reset(); }
+document.getElementById('btnPauseOutput').onclick = function() { outputPaused = !outputPaused; this.innerHTML = outputPaused ? '<i class="bi bi-play"></i>' : '<i class="bi bi-pause"></i>'; };
+document.getElementById('btnClearOutput').onclick = function() { document.getElementById('iperfOutput').innerHTML = '<div class="text-muted">[System] Output cleared...</div>'; };
+window.addEventListener('iperf_update', function(e) { addIperfOutput(e.detail.line || e.detail.message || JSON.stringify(e.detail)); });
+socket.on('iperf_output', function(data) { addIperfOutput(data.line); });
+socket.on('iperf_complete', function(data) { addIperfOutput('Test completed: ' + JSON.stringify(data), 'success'); });
+</script>
+{% endblock %}

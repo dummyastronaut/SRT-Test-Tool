@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}SRT Configuration{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <form method="POST" action="{{ url_for('srt_config') }}" id="srtConfigForm">
+            <!-- SRT Mode Selection -->
+            <div class="card-srt p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-gear me-2"></i>SRT Mode Configuration</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Connection Mode</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="srt_mode" id="modeCaller" value="caller" {% if config.srt_mode == 'caller' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="modeCaller"><i class="bi bi-arrow-up-circle me-1"></i>Caller</label>
+                            <input type="radio" class="btn-check" name="srt_mode" id="modeListener" value="listener" {% if config.srt_mode == 'listener' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="modeListener"><i class="bi bi-arrow-down-circle me-1"></i>Listener</label>
+                            <input type="radio" class="btn-check" name="srt_mode" id="modeRendezvous" value="rendezvous" {% if config.srt_mode == 'rendezvous' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="modeRendezvous"><i class="bi bi-arrow-left-right me-1"></i>Rendezvous</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">SRT Enable/Disable</label>
+                        <div class="form-check form-switch mt-3">
+                            <input class="form-check-input" type="checkbox" name="srt_enabled" id="srtEnabled" {% if config.srt_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="srtEnabled">Enable SRT Protocol</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Configuration -->
+            <div class="card-srt p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-network-wired me-2"></i>Network Settings</h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">UDP Ingress IP</label>
+                        <input type="text" class="form-control" name="udp_ingress_ip" value="{{ config.udp_ingress_ip or '127.0.0.1' }}" placeholder="127.0.0.1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">UDP Ingress Port</label>
+                        <input type="number" class="form-control" name="udp_ingress_port" value="{{ config.udp_ingress_port or 9000 }}" min="1024" max="65535">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">UDP Egress IP</label>
+                        <input type="text" class="form-control" name="udp_egress_ip" value="{{ config.udp_egress_ip or '127.0.0.1' }}" placeholder="127.0.0.1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">UDP Egress Port</label>
+                        <input type="number" class="form-control" name="udp_egress_port" value="{{ config.udp_egress_port or 9001 }}" min="1024" max="65535">
+                    </div>
+                </div>
+                <div class="alert alert-info mt-3 mb-0">
+                    <i class="bi bi-info-circle me-2"></i><strong>Bypass Mode:</strong> When SRT is disabled, UDP input flows directly to UDP output without SRT processing.
+                </div>
+            </div>
+
+            <!-- Buffer & Payload Settings -->
+            <div class="card-srt p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-box me-2"></i>Buffer & Payload Settings</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Payload Size (bytes)</label>
+                        <input type="number" class="form-control" name="payload_size" value="{{ config.payload_size or 1316 }}" min="1024" max="1456">
+                        <small class="text-muted">Typical: 1316 bytes</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Buffer Size (bytes)</label>
+                        <input type="number" class="form-control" name="buffer_size" value="{{ config.buffer_size or 8192 }}" min="1024">
+                        <small class="text-muted">Typical: 8192 bytes</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Latency (ms)</label>
+                        <input type="number" class="form-control" name="latency" value="{{ config.latency or 100 }}" min="20" max="5000">
+                        <small class="text-muted">Typical: 100-250ms</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Settings -->
+            <div class="card-srt p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-sliders me-2"></i>Advanced Settings</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Connection Timeout (ms)</label>
+                        <input type="number" class="form-control" name="connection_timeout" value="{{ config.connection_timeout or 3000 }}" min="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Max Bandwidth (Mbps)</label>
+                        <input type="number" class="form-control" name="max_bandwidth" value="{{ config.max_bandwidth or 100 }}" min="1">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Packet Filter</label>
+                        <input type="text" class="form-control" name="packet_filter" value="{{ config.packet_filter or '' }}" placeholder="e.g., fec, normal">
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Retransmission Mode</label>
+                        <select class="form-select" name="retransmission_mode">
+                            <option value="0" {% if config.retransmission_mode == 0 %}selected{% endif %}>No Retransmission</option>
+                            <option value="1" {% if config.retransmission_mode == 1 %}selected{% endif %}>Always Retransmit</option>
+                            <option value="2" {% if config.retransmission_mode == 2 %}selected{% endif %}>Aggressive Retransmit</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Encryption</label>
+                        <select class="form-select" name="encryption">
+                            <option value="none" {% if config.encryption == 'none' %}selected{% endif %}>None</option>
+                            <option value="AES-128" {% if config.encryption == 'AES-128' %}selected{% endif %}>AES-128</option>
+                            <option value="AES-256" {% if config.encryption == 'AES-256' %}selected{% endif %}>AES-256</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Passphrase</label>
+                        <input type="password" class="form-control" name="passphrase" value="{{ config.passphrase or '' }}" placeholder="Encryption key">
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex">
+                <button type="submit" class="btn btn-srt btn-lg"><i class="bi bi-save me-2"></i>Save Configuration</button>
+                <button type="button" class="btn btn-outline-secondary btn-lg" onclick="resetForm()"><i class="bi bi-arrow-counterclockwise me-2"></i>Reset</button>
+                <a href="{{ url_for('preset_manager') }}" class="btn btn-outline-primary btn-lg ms-auto"><i class="bi bi-collection me-2"></i>Load Preset</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Live Preview -->
+    <div class="col-lg-4">
+        <div class="card-srt p-4 mb-4">
+            <h5 class="mb-3"><i class="bi bi-eye me-2"></i>Live Preview</h5>
+            <div class="bg-dark p-3 rounded text-white small" style="font-family: 'Courier New', monospace;">
+                <div><span class="text-info">srt:</span>//<span id="previewHost">127.0.0.1</span>:<span id="previewPort">9000</span></div>
+                <div class="mt-2"><span class="text-muted">Mode:</span> <span id="previewMode">caller</span></div>
+                <div><span class="text-muted">Latency:</span> <span id="previewLatency">100</span>ms</div>
+                <div><span class="text-muted">Payload:</span> <span id="previewPayload">1316</span>B</div>
+                <div><span class="text-muted">Buffer:</span> <span id="previewBuffer">8192</span>B</div>
+            </div>
+        </div>
+        <div class="card-srt p-4">
+            <h5 class="mb-3"><i class="bi bi-question-circle me-2"></i>Help</h5>
+            <div class="accordion" id="helpAccordion">
+                <div class="accordion-item border-0">
+                    <h2 class="accordion-header"><button class="accordion-button collapsed bg-light small" type="button" data-bs-toggle="collapse" data-bs-target="#helpCaller">Caller Mode</button></h2>
+                    <div id="helpCaller" class="accordion-collapse collapse"><div class="accordion-body small">Initiates connection to a listener. Best for outbound streaming.</div></div>
+                </div>
+                <div class="accordion-item border-0">
+                    <h2 class="accordion-header"><button class="accordion-button collapsed bg-light small" type="button" data-bs-toggle="collapse" data-bs-target="#helpListener">Listener Mode</button></h2>
+                    <div id="helpListener" class="accordion-collapse collapse"><div class="accordion-body small">Waits for incoming connections. Best for receiving streams.</div></div>
+                </div>
+                <div class="accordion-item border-0">
+                    <h2 class="accordion-header"><button class="accordion-button collapsed bg-light small" type="button" data-bs-toggle="collapse" data-bs-target="#helpLatency">Latency Settings</button></h2>
+                    <div id="helpLatency" class="accordion-collapse collapse"><div class="accordion-body small">Higher latency = better error correction. 100ms typical for local, 250ms+ for WAN.</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function resetForm() { document.getElementById('srtConfigForm').reset(); }
+document.querySelectorAll('input[name="srt_mode"]').forEach(r => r.addEventListener('change', updatePreview));
+document.querySelectorAll('input[name], select[name]').forEach(i => i.addEventListener('input', updatePreview));
+function updatePreview() {
+    document.getElementById('previewHost').textContent = document.querySelector('input[name="udp_ingress_ip"]').value || '127.0.0.1';
+    document.getElementById('previewPort').textContent = document.querySelector('input[name="udp_ingress_port"]').value || '9000';
+    document.getElementById('previewLatency').textContent = document.querySelector('input[name="latency"]').value || '100';
+    document.getElementById('previewPayload').textContent = document.querySelector('input[name="payload_size"]').value || '1316';
+    document.getElementById('previewBuffer').textContent = document.querySelector('input[name="buffer_size"]').value || '8192';
+    const mode = document.querySelector('input[name="srt_mode"]:checked');
+    document.getElementById('previewMode').textContent = mode ? mode.value : 'caller';
+}
+updatePreview();
+</script>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - SRT Monitor{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <!-- Status Cards -->
+    <div class="col-12">
+        <div class="row g-3">
+            <div class="col-md-2">
+                <div class="card-srt p-3 text-center stat-card">
+                    <h6 class="mb-1 opacity-75"><i class="bi bi-broadcast me-1"></i>SRT Status</h6>
+                    <h4 class="mb-0" id="srtStatus">Inactive</h4>
+                    <small class="opacity-75">Mode: <span id="srtMode">N/A</span></small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card-srt p-3 text-center stat-card success">
+                    <h6 class="mb-1 opacity-75"><i class="bi bi-people me-1"></i>Sessions</h6>
+                    <h4 class="mb-0" id="activeSessions">0</h4>
+                    <small class="opacity-75">Active Connections</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card-srt p-3 text-center stat-card info">
+                    <h6 class="mb-1 opacity-75"><i class="bi bi-arrow-up-circle me-1"></i>Send Rate</h6>
+                    <h4 class="mb-0" id="sendRate">0 Mbps</h4>
+                    <small class="opacity-75">Current</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card-srt p-3 text-center stat-card info">
+                    <h6 class="mb-1 opacity-75"><i class="bi bi-arrow-down-circle me-1"></i>Recv Rate</h6>
+                    <h4 class="mb-0" id="recvRate">0 Mbps</h4>
+                    <small class="opacity-75">Current</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card-srt p-3 text-center stat-card warning">
+                    <h6 class="mb-1 opacity-75"><i class="bi bi-exclamation-triangle me-1"></i>Packet Loss</h6>
+                    <h4 class="mb-0" id="packetLoss">0</h4>
+                    <small class="opacity-75">Lost Packets</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card-srt p-3 text-center stat-card">
+                    <h6 class="mb-1 opacity-75"><i class="bi bi-clock me-1"></i>Latency</h6>
+                    <h4 class="mb-0" id="srtLatency">0ms</h4>
+                    <small class="opacity-75">RTT</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Throughput Chart -->
+    <div class="col-lg-8">
+        <div class="card-srt p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Throughput & Bandwidth</h5>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" id="btnPauseChart"><i class="bi bi-pause"></i> Pause</button>
+                    <button class="btn btn-outline-secondary" id="btnResetChart"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+                </div>
+            </div>
+            <div style="height: 300px;">
+                <canvas id="throughputChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & Stats -->
+    <div class="col-lg-4">
+        <div class="card-srt p-4 mb-4">
+            <h5 class="mb-3"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
+            <div class="d-grid gap-2">
+                <button class="btn btn-srt" id="btnStartSRT"><i class="bi bi-play-circle me-2"></i>Start SRT Service</button>
+                <button class="btn btn-outline-danger" id="btnStopSRT"><i class="bi bi-stop-circle me-2"></i>Stop SRT Service</button>
+                <a href="{{ url_for('iperf_config') }}" class="btn btn-outline-primary"><i class="bi bi-trophy me-2"></i>Run Iperf Test</a>
+                <a href="{{ url_for('reports') }}" class="btn btn-outline-success"><i class="bi bi-download me-2"></i>Export Reports</a>
+            </div>
+        </div>
+        <div class="card-srt p-4">
+            <h5 class="mb-3"><i class="bi bi-activity me-2"></i>Bandwidth Info</h5>
+            <div class="mb-2"><small class="text-muted">Max Bandwidth:</small><strong class="float-end" id="maxBandwidth">0 Mbps</strong></div>
+            <div class="mb-2"><small class="text-muted">Available BW:</small><strong class="float-end" id="availBandwidth">0 Mbps</strong></div>
+            <div class="mb-2"><small class="text-muted">Total Packets:</small><strong class="float-end" id="totalPackets">0</strong></div>
+            <div class="mb-2"><small class="text-muted">Dropped:</small><strong class="float-end text-danger" id="droppedPackets">0</strong></div>
+        </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="col-12">
+        <div class="card-srt p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-terminal me-2"></i>Activity Log</h5>
+                <button class="btn btn-sm btn-outline-secondary" id="btnClearLog"><i class="bi bi-trash me-1"></i>Clear</button>
+            </div>
+            <div class="bg-dark p-3 rounded" style="max-height: 300px; overflow-y: auto;">
+                <div id="activityLog" class="small" style="font-family: 'Courier New', monospace;">
+                    <div class="text-muted">[System] Waiting for activity...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let throughputChart, chartPaused = false;
+const chartData = { labels: [], sendData: [], recvData: [] };
+
+function initChart() {
+    const ctx = document.getElementById('throughputChart').getContext('2d');
+    throughputChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                { label: 'Send Rate (Mbps)', data: [], borderColor: '#11998e', backgroundColor: 'rgba(17,153,142,0.1)', fill: true, tension: 0.4 },
+                { label: 'Receive Rate (Mbps)', data: [], borderColor: '#4facfe', backgroundColor: 'rgba(79,172,254,0.1)', fill: true, tension: 0.4 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Mbps' } }, x: { title: { display: true, text: 'Time' } } }, plugins: { legend: { position: 'top' } } }
+    });
+}
+
+function addLog(message, type = 'info') {
+    const log = document.getElementById('activityLog');
+    const now = new Date().toLocaleTimeString();
+    const div = document.createElement('div');
+    div.className = type === 'success' ? 'text-success' : type === 'error' ? 'text-danger' : 'text-muted';
+    div.innerHTML = '<i class="bi bi-' + (type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle') + ' me-2"></i>[' + now + '] ' + message;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+    if (log.children.length > 50) log.removeChild(log.firstChild);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initChart();
+    fetch('/api/dashboard/status').then(r => r.json()).then(data => {
+        if (data.srt_status) document.getElementById('srtStatus').textContent = data.srt_status;
+        if (data.srt_mode) document.getElementById('srtMode').textContent = data.srt_mode;
+        if (data.latency) document.getElementById('srtLatency').textContent = data.latency + 'ms';
+        if (data.active_sessions !== undefined) document.getElementById('activeSessions').textContent = data.active_sessions;
+        if (data.bandwidth) document.getElementById('sendRate').textContent = data.bandwidth + ' Mbps';
+        if (data.max_bandwidth) document.getElementById('maxBandwidth').textContent = data.max_bandwidth + ' Mbps';
+        if (data.avail_bandwidth) document.getElementById('availBandwidth').textContent = data.avail_bandwidth + ' Mbps';
+        if (data.packet_loss !== undefined) document.getElementById('packetLoss').textContent = data.packet_loss;
+        if (data.dropped_packets !== undefined) document.getElementById('droppedPackets').textContent = data.dropped_packets;
+    });
+
+    window.addEventListener('srt_stats_update', function(e) {
+        const d = e.detail;
+        if (!chartPaused) {
+            const now = new Date().toLocaleTimeString();
+            chartData.labels.push(now);
+            chartData.sendData.push(d.send_rate || 0);
+            chartData.recvData.push(d.recv_rate || 0);
+            if (chartData.labels.length > 30) { chartData.labels.shift(); chartData.sendData.shift(); chartData.recvData.shift(); }
+            throughputChart.data.labels = chartData.labels;
+            throughputChart.data.datasets[0].data = chartData.sendData;
+            throughputChart.data.datasets[1].data = chartData.recvData;
+            throughputChart.update('none');
+        }
+        if (d.send_rate !== undefined) document.getElementById('sendRate').textContent = d.send_rate.toFixed(2) + ' Mbps';
+        if (d.recv_rate !== undefined) document.getElementById('recvRate').textContent = d.recv_rate.toFixed(2) + ' Mbps';
+        if (d.latency !== undefined) document.getElementById('srtLatency').textContent = d.latency + 'ms';
+        if (d.packet_loss !== undefined) document.getElementById('packetLoss').textContent = d.packet_loss;
+    });
+
+    document.getElementById('btnStartSRT').onclick = () => fetch('/api/srt/start', { method: 'POST' }).then(r => r.json()).then(d => addLog(d.message, d.success ? 'success' : 'error'));
+    document.getElementById('btnStopSRT').onclick = () => fetch('/api/srt/stop', { method: 'POST' }).then(r => r.json()).then(d => addLog(d.message, d.success ? 'success' : 'error'));
+    document.getElementById('btnPauseChart').onclick = function() { chartPaused = !chartPaused; this.innerHTML = chartPaused ? '<i class="bi bi-play"></i> Resume' : '<i class="bi bi-pause"></i> Pause'; };
+    document.getElementById('btnResetChart').onclick = function() { chartData.labels = []; chartData.sendData = []; chartData.recvData = []; throughputChart.data.labels = []; throughputChart.data.datasets[0].data = []; throughputChart.data.datasets[1].data = []; throughputChart.update(); };
+    document.getElementById('btnClearLog').onclick = function() { document.getElementById('activityLog').innerHTML = ''; addLog('Log cleared'); };
+});
+</script>
+{% endblock %}

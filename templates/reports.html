@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Reports - SRT Monitor{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <!-- Report Generation Options -->
+    <div class="col-lg-6">
+        <div class="card-srt p-4 mb-4">
+            <h5 class="mb-3"><i class="bi bi-file-earmark-bar-graph me-2"></i>Generate Statistics Report</h5>
+            <form method="POST" action="{{ url_for('generate_report') }}">
+                <div class="mb-3">
+                    <label class="form-label">Report Type</label>
+                    <select class="form-select" name="report_type">
+                        <option value="srt_stats">SRT Statistics</option>
+                        <option value="iperf_results">Iperf Results</option>
+                        <option value="combined">Combined Report</option>
+                    </select>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Date Range From</label>
+                        <input type="datetime-local" class="form-control" name="date_from">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Date Range To</label>
+                        <input type="datetime-local" class="form-control" name="date_to">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Include Charts</label>
+                    <div class="form-check"><input class="form-check-input" type="checkbox" name="include_throughput" checked><label class="form-check-label">Throughput Chart</label></div>
+                    <div class="form-check"><input class="form-check-input" type="checkbox" name="include_packet_stats" checked><label class="form-check-label">Packet Statistics</label></div>
+                    <div class="form-check"><input class="form-check-input" type="checkbox" name="include_latency" checked><label class="form-check-label">Latency Graph</label></div>
+                </div>
+                <button type="submit" class="btn btn-srt" name="format" value="pdf"><i class="bi bi-file-earmark-pdf me-2"></i>Generate PDF</button>
+                <button type="submit" class="btn btn-outline-success" name="format" value="csv"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Export CSV</button>
+                <button type="submit" class="btn btn-outline-info" name="format" value="html"><i class="bi bi-file-earmark-code me-2"></i>Export HTML</button>
+            </form>
+        </div>
+        <div class="card-srt p-4">
+            <h5 class="mb-3"><i class="bi bi-collection me-2"></i>Saved Presets</h5>
+            <div class="list-group" id="presetsList">
+                <div class="text-center text-muted py-3">No saved presets</div>
+            </div>
+            <a href="{{ url_for('preset_manager') }}" class="btn btn-outline-primary mt-3"><i class="bi bi-gear me-2"></i>Manage Presets</a>
+        </div>
+    </div>
+
+    <!-- Report Preview & Recent Reports -->
+    <div class="col-lg-6">
+        <div class="card-srt p-4 mb-4">
+            <h5 class="mb-3"><i class="bi bi-eye me-2"></i>Report Preview</h5>
+            <div class="bg-light p-3 rounded text-center" style="min-height: 300px;">
+                <i class="bi bi-file-earmark-bar-graph display-1 text-muted"></i>
+                <p class="text-muted mt-3">Select report type and generate to preview</p>
+            </div>
+        </div>
+        <div class="card-srt p-4">
+            <h5 class="mb-3"><i class="bi bi-clock-history me-2"></i>Recent Reports</h5>
+            <div class="list-group" id="recentReports">
+                <div class="text-center text-muted py-3">No generated reports</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+fetch('/api/presets/list').then(r => r.json()).then(data => {
+    const list = document.getElementById('presetsList');
+    if (data.presets && data.presets.length > 0) {
+        list.innerHTML = data.presets.map(p => '<a href="/srt-config?preset=' + p.name + '" class="list-group-item list-group-item-action"><i class="bi bi-collection me-2"></i>' + p.name + '<span class="badge bg-primary float-end">' + p.type + '</span></a>').join('');
+    }
+});
+fetch('/api/reports/list').then(r => r.json()).then(data => {
+    const list = document.getElementById('recentReports');
+    if (data.reports && data.reports.length > 0) {
+        list.innerHTML = data.reports.map(r => '<a href="/reports/download/' + r.id + '" class="list-group-item list-group-item-action"><i class="bi bi-file-earmark me-2"></i>' + r.name + '<span class="badge bg-secondary float-end">' + r.type + '</span></a>').join('');
+    }
+});
+</script>
+{% endblock %}

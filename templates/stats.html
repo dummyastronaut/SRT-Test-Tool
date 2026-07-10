@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Statistics - SRT Monitor{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <!-- Statistics Cards -->
+    <div class="col-12">
+        <div class="row g-3">
+            <div class="col-md-2"><div class="card-srt p-3 text-center stat-card"><h6 class="mb-1 opacity-75">Send Rate</h6><h4 class="mb-0" id="statSendRate">0 Mbps</h4></div></div>
+            <div class="col-md-2"><div class="card-srt p-3 text-center stat-card success"><h6 class="mb-1 opacity-75">Recv Rate</h6><h4 class="mb-0" id="statRecvRate">0 Mbps</h4></div></div>
+            <div class="col-md-2"><div class="card-srt p-3 text-center stat-card warning"><h6 class="mb-1 opacity-75">Packets Lost</h6><h4 class="mb-0" id="statPacketsLost">0</h4></div></div>
+            <div class="col-md-2"><div class="card-srt p-3 text-center stat-card info"><h6 class="mb-1 opacity-75">Dropped</h6><h4 class="mb-0" id="statDropped">0</h4></div></div>
+            <div class="col-md-2"><div class="card-srt p-3 text-center stat-card"><h6 class="mb-1 opacity-75">Retransmitted</h6><h4 class="mb-0" id="statRetransmit">0</h4></div></div>
+            <div class="col-md-2"><div class="card-srt p-3 text-center stat-card success"><h6 class="mb-1 opacity-75">Out of Order</h6><h4 class="mb-0" id="statOutOrder">0</h4></div></div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="col-lg-6">
+        <div class="card-srt p-4">
+            <h5 class="mb-3"><i class="bi bi-graph-up me-2"></i>Throughput Over Time</h5>
+            <canvas id="throughputChart" style="height: 300px;"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card-srt p-4">
+            <h5 class="mb-3"><i class="bi bi-exclamation-triangle me-2"></i>Packet Statistics</h5>
+            <canvas id="packetChart" style="height: 300px;"></canvas>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="col-12">
+        <div class="card-srt p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-table me-2"></i>Detailed Statistics</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" id="btnPauseStats"><i class="bi bi-pause me-1"></i>Pause</button>
+                    <button class="btn btn-sm btn-outline-secondary" id="btnExportTable"><i class="bi bi-download me-1"></i>Export</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr><th>Timestamp</th><th>Send Rate</th><th>Recv Rate</th><th>Lost</th><th>Dropped</th><th>Retransmit</th><th>Out of Order</th><th>Latency</th></tr>
+                    </thead>
+                    <tbody id="statsTableBody">
+                        <tr><td colspan="8" class="text-center text-muted">Waiting for data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bandwidth & Latency Charts -->
+    <div class="col-lg-6">
+        <div class="card-srt p-4">
+            <h5 class="mb-3"><i class="bi bi-speedometer2 me-2"></i>Available Bandwidth</h5>
+            <canvas id="bandwidthChart" style="height: 250px;"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card-srt p-4">
+            <h5 class="mb-3"><i class="bi bi-clock me-2"></i>Latency (RTT)</h5>
+            <canvas id="latencyChart" style="height: 250px;"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let statsPaused = false;
+let statsHistory = [];
+const throughputChart = new Chart(document.getElementById('throughputChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Send (Mbps)', data: [], borderColor: '#11998e', fill: true, tension: 0.4 }, { label: 'Recv (Mbps)', data: [], borderColor: '#4facfe', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, scales: { y: { beginAtZero: true } } } });
+const packetChart = new Chart(document.getElementById('packetChart'), { type: 'bar', data: { labels: [], datasets: [{ label: 'Lost', data: [], backgroundColor: '#f5576c' }, { label: 'Dropped', data: [], backgroundColor: '#ffb830' }, { label: 'Retransmit', data: [], backgroundColor: '#667eea' }, { label: 'Out of Order', data: [], backgroundColor: '#38ef7d' }] }, options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 } } });
+const bandwidthChart = new Chart(document.getElementById('bandwidthChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Max BW (Mbps)', data: [], borderColor: '#667eea', fill: true, tension: 0.4 }, { label: 'Avail BW (Mbps)', data: [], borderColor: '#764ba2', fill: false }] }, options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, scales: { y: { beginAtZero: true } } } });
+const latencyChart = new Chart(document.getElementById('latencyChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Latency (ms)', data: [], borderColor: '#ffb830', borderWidth: 2, fill: false, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, scales: { y: { beginAtZero: true } } } });
+
+function updateStats(data) {
+    const now = new Date().toLocaleTimeString();
+    document.getElementById('statSendRate').textContent = (data.send_rate || 0).toFixed(2) + ' Mbps';
+    document.getElementById('statRecvRate').textContent = (data.recv_rate || 0).toFixed(2) + ' Mbps';
+    document.getElementById('statPacketsLost').textContent = (data.packet_loss || 0).toLocaleString();
+    document.getElementById('statDropped').textContent = (data.dropped_packets || 0).toLocaleString();
+    document.getElementById('statRetransmit').textContent = (data.retransmitted_packets || 0).toLocaleString();
+    document.getElementById('statOutOrder').textContent = (data.out_of_order_packets || 0).toLocaleString();
+    if (!statsPaused) {
+        const labels = throughputChart.data.labels;
+        labels.push(now);
+        if (labels.length > 60) { labels.shift(); throughputChart.data.datasets.forEach(d => d.data.shift()); packetChart.data.labels.shift(); packetChart.data.datasets.forEach(d => d.data.shift()); bandwidthChart.data.labels.shift(); bandwidthChart.data.datasets.forEach(d => d.data.shift()); latencyChart.data.labels.shift(); latencyChart.data.datasets[0].data.shift(); }
+        throughputChart.data.datasets[0].data.push(data.send_rate || 0);
+        throughputChart.data.datasets[1].data.push(data.recv_rate || 0);
+        packetChart.data.labels.push(now);
+        packetChart.data.datasets[0].data.push(data.packet_loss || 0);
+        packetChart.data.datasets[1].data.push(data.dropped_packets || 0);
+        packetChart.data.datasets[2].data.push(data.retransmitted_packets || 0);
+        packetChart.data.datasets[3].data.push(data.out_of_order_packets || 0);
+        bandwidthChart.data.datasets[0].data.push(data.max_bandwidth || 0);
+        bandwidthChart.data.datasets[1].data.push(data.avail_bandwidth || 0);
+        latencyChart.data.datasets[0].data.push(data.latency || 0);
+        throughputChart.update('none'); packetChart.update('none'); bandwidthChart.update('none'); latencyChart.update('none');
+        statsHistory.push({ timestamp: now, ...data });
+        const tbody = document.getElementById('statsTableBody');
+        tbody.innerHTML = '<tr><td>' + now + '</td><td>' + (data.send_rate || 0).toFixed(2) + '</td><td>' + (data.recv_rate || 0).toFixed(2) + '</td><td>' + (data.packet_loss || 0) + '</td><td>' + (data.dropped_packets || 0) + '</td><td>' + (data.retransmitted_packets || 0) + '</td><td>' + (data.out_of_order_packets || 0) + '</td><td>' + (data.latency || 0) + 'ms</td></tr>' + tbody.innerHTML;
+        if (tbody.children.length > 100) tbody.removeChild(tbody.lastChild);
+    }
+}
+window.addEventListener('srt_stats_update', e => updateStats(e.detail));
+document.getElementById('btnPauseStats').onclick = function() { statsPaused = !statsPaused; this.innerHTML = statsPaused ? '<i class="bi bi-play me-1"></i>Resume' : '<i class="bi bi-pause me-1"></i>Pause'; };
+document.getElementById('btnExportTable').onclick = function() { window.location.href = '/reports?type=stats&format=csv'; };
+</script>
+{% endblock %}
