@@ -1,0 +1,135 @@
+# Update your system
+sudo apt update && sudo apt upgrade -y
+
+# Install required system packages
+sudo apt install -y git python3 python3-pip python3-venv iperf3 ffmpeg \
+    libsrt1.5-gnutls libsrt-dev net-tools tcpdump
+# Clone the repository
+git clone https://github.com/dummyastronaut/SRT-Test-Tool.git
+cd SRT-Test-Tool
+
+# Check repository structure
+tree -L 3
+
+# Make installer executable
+chmod +x deploy/installer.sh
+
+# Run the installer
+sudo ./deploy/installer.sh
+
+Manual install
+# Create system user
+sudo useradd -r -s /bin/false srt-monitor
+
+# Create directories
+sudo mkdir -p /opt/srt-test-tool/app
+sudo mkdir -p /opt/srt-test-tool/data/configs
+sudo mkdir -p /opt/srt-test-tool/data/reports
+sudo mkdir -p /var/log/srt-test-tool
+
+# Set permissions
+sudo chown -R srt-monitor:srt-monitor /opt/srt-test-tool
+sudo chown -R srt-monitor:srt-monitor /var/log/srt-test-tool
+
+# Copy files to installation directory
+cp -r app/* /opt/srt-test-tool/app/
+cp requirements.txt /opt/srt-test-tool/
+
+# Create virtual environment
+python3 -m venv /opt/srt-test-tool/venv
+source /opt/srt-test-tool/venv/bin/activate
+pip install --upgrade pip
+pip install -r /opt/srt-test-tool/requirements.txt
+deactivate
+
+# Create systemd service
+sudo bash -c 'cat > /etc/systemd/system/srt-test-tool.service << "EOF"
+[Unit]
+Description=SRT Test Tool Service
+After=network.target
+
+[Service]
+User=srt-monitor
+Group=srt-monitor
+WorkingDirectory=/opt/srt-test-tool/app
+Environment="PATH=/opt/srt-test-tool/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/srt-test-tool/venv/bin/python3 app.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/srt-test-tool/service.log
+StandardError=append:/var/log/srt-test-tool/service-error.log
+
+[Install]
+WantedBy=multi-user.target
+EOF'
+
+# Reload systemd and enable service
+sudo systemctl daemon-reload
+sudo systemctl enable srt-test-tool
+
+start the service
+# Start the service
+sudo systemctl start srt-test-tool
+
+# Check service status
+sudo systemctl status srt-test-tool
+
+# View logs
+sudo journalctl -u srt-test-tool -f
+
+
+    Home: http://localhost:5001/
+    SRT Configuration: http://localhost:5001/srt-config
+    Iperf Configuration: http://localhost:5001/iperf-config
+    Live Statistics: http://localhost:5001/stats
+    Reports: http://localhost:5001/reports
+save configs
+# List saved configurations
+ls -la /opt/srt-test-tool/data/configs/
+
+# Load a saved configuration
+curl -X POST http://localhost:5001/api/config/load \
+  -H "Content-Type: application/json" \
+  -d '{"config_name": "my_srt_config.json"}'
+environment variables
+Environment="SRT_PORT=5001"
+Environment="MAX_LOG_SIZE=10485760"  # 10MB
+Environment="DEBUG_MODE=False"
+
+reload
+sudo systemctl daemon-reload
+sudo systemctl restart srt-test-tool
+troubleshoot
+Service fails to start 	Check logs: sudo journalctl -u srt-test-tool -n 50
+Port 5001 already in use 	Change port in app.py or kill process: sudo lsof -i :5001
+Missing dependencies 	Run: pip install -r requirements.txt
+Permission denied 	sudo chown -R srt-monitor:srt-monitor /opt/srt-test-tool
+Iperf not working 	Install iperf3: sudo apt install iperf3
+
+# Restart service
+sudo systemctl restart srt-test-tool
+
+# Stop service
+sudo systemctl stop srt-test-tool
+
+# View service logs
+sudo journalctl -u srt-test-tool --no-pager -n 100
+
+# Check service status
+sudo systemctl is-active srt-test-tool
+sudo systemctl is-enabled srt-test-tool
+log rotation
+ls -lh /var/log/srt-test-tool/
+disk usage
+# Check disk usage
+du -sh /opt/srt-test-tool/data/reports/
+du -sh /var/log/srt-test-tool/
+
+# Clean old reports (keep last 30 days)
+find /opt/srt-test-tool/data/reports/ -name "*.pdf" -mtime +30 -delete
+
+
+
+
+
+
